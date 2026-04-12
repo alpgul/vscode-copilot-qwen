@@ -3,6 +3,7 @@ import {
   getErrorDetail,
   getErrorStatus,
   isAuthError,
+  isConnectionError,
 } from './qwenClientErrors';
 import {
   normalizeMessages,
@@ -18,6 +19,9 @@ import type {
   QwenTool,
   QwenToolChoice,
 } from '../types';
+
+const MAX_STREAM_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
 
 class QwenClient {
   private client: OpenAI | null = null;
@@ -70,60 +74,87 @@ class QwenClient {
 
     applyReasoningOptions(baseRequestOptions, params.reasoning);
 
-    let response: any | undefined;
-    let lastError: unknown;
+    let retryCount = 0;
     let requestOptions: any = {...baseRequestOptions};
+    let yieldedAny = false;
 
-    try {
-      const createCompletion = () =>
-        this.requireClient().chat.completions.create(requestOptions, {
+    while (retryCount <= MAX_STREAM_RETRIES) {
+      if (retryCount > 0) {
+        const delayMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount - 1);
+        await this.sleep(delayMs, params.abortSignal);
+      }
+
+      try {
+        const response = await this.requireClient().chat.completions.create(requestOptions, {
           ...(params.abortSignal ? {signal: params.abortSignal} : {}),
         });
 
-      requestOptions = baseRequestOptions;
-      try {
-        response = await createCompletion();
+        if (response === undefined) {
+          throw new Error('Empty response from Qwen API');
+        }
+
+        for await (const event of collectStreamEvents(response as AsyncIterable<any>)) {
+          yieldedAny = true;
+          yield event;
+        }
+
+        // Stream completed successfully
+        return;
       } catch (error) {
-        throw error;
-      }
+        if (isAuthError(error)) {
+          const status = getErrorStatus(error);
+          const detail = getErrorDetail(error);
+          const suffix = detail ? ` (${detail})` : '';
 
-      if (response === undefined) {
-        throw lastError;
-      }
+          if (status === 401 || status === 403) {
+            throw new Error(
+              `Your Qwen login session is not authorized${suffix}. Run Qwen Copilot: Login again.`,
+            );
+          }
 
-      for await (const event of collectStreamEvents(response as AsyncIterable<any>)) {
-        yield event;
-      }
-    } catch (error) {
-      if (isAuthError(error)) {
-        const status = getErrorStatus(error);
-        const detail = getErrorDetail(error);
-        const suffix = detail ? ` (${detail})` : '';
-
-        if (status === 401 || status === 403) {
           throw new Error(
-            `Your Qwen login session is not authorized${suffix}. Run Qwen Copilot: Login again.`,
+            `Qwen login failed${suffix}. Run Qwen Copilot: Login and try again.`,
           );
         }
 
-        throw new Error(
-          `Qwen login failed${suffix}. Run Qwen Copilot: Login and try again.`,
-        );
-      }
+        if (getErrorStatus(error) === 400) {
+          const detail = getErrorDetail(error);
+          const endpoint = this.activeBaseUrl ? ` Endpoint: ${this.activeBaseUrl}.` : '';
+          throw new Error(
+            `Qwen request was rejected (${detail || 'HTTP 400 bad request'}). Model: ${String(requestOptions.model)}.${endpoint}`,
+          );
+        }
 
-      if (getErrorStatus(error) === 400) {
-        const detail = getErrorDetail(error);
-        const endpoint = this.activeBaseUrl ? ` Endpoint: ${this.activeBaseUrl}.` : '';
-        throw new Error(
-          `Qwen request was rejected (${detail || 'HTTP 400 bad request'}). Model: ${String(requestOptions.model)}.${endpoint}`,
-        );
-      }
+        // Retry on connection errors
+        if (isConnectionError(error) && retryCount < MAX_STREAM_RETRIES) {
+          retryCount++;
+          continue;
+        }
 
-      if (error instanceof Error) {
-        throw error;
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error(String(error));
       }
-      throw new Error(String(error));
     }
+  }
+
+  private async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (abortSignal?.aborted) {
+        reject(new DOMException('Aborted', 'AbortError'));
+        return;
+      }
+
+      const timer = setTimeout(resolve, ms);
+      const abortHandler = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+
+      abortSignal?.addEventListener('abort', abortHandler, {once: true});
+      timer.ref?.();
+    });
   }
 
   async countTokens(messages: QwenMessage[]): Promise<number> {
@@ -152,7 +183,8 @@ class QwenClient {
     this.client = new OpenAI({
       apiKey: session.apiKey,
       baseURL: session.baseUrl,
-      maxRetries: 0,
+      maxRetries: 2,
+      timeout: 60_000,
       defaultHeaders: {
         'User-Agent': QwenClient.USER_AGENT,
         'X-Dashscope-Useragent': QwenClient.QWEN_USERAGENT,
