@@ -1,0 +1,111 @@
+{
+  "name": "vscode-qwen-copilot",
+  "displayName": "Qwen Copilot",
+  "description": "Qwen Code integration for Copilot Agent as a Language Model Chat Provider",
+  "icon": "images/Qwen_logo.png",
+  "version": "0.1.0",
+  "publisher": "gabriel",
+  "license": "MIT",
+  "keywords": ["qwen", "ai", "copilot", "language-model", "code-assistant", "alibaba"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yyyumeniku/qwen-copilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yyyumeniku/qwen-copilot/issues"
+  },
+  "homepage": "https://github.com/yyyumeniku/qwen-copilot#readme",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.108.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "qwen",
+        "displayName": "Qwen Code",
+        "managementCommand": "qwen-copilot.manage",
+        "modelSelector": [
+          {
+            "vendor": "qwen",
+            "kind": "text"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "qwen-copilot.login",
+        "title": "Qwen Copilot: Login"
+      },
+      {
+        "command": "qwen-copilot.authenticate",
+        "title": "Qwen Copilot: Authenticate"
+      },
+      {
+        "command": "qwen-copilot.manage",
+        "title": "Qwen Copilot: Manage"
+      },
+      {
+        "command": "qwen-copilot.logout",
+        "title": "Qwen Copilot: Logout"
+      },
+      {
+        "command": "qwen-copilot.continueInQwenCli",
+        "title": "Qwen Copilot: Continue in Qwen CLI"
+      }
+    ],
+    "configuration": {
+      "title": "Qwen Copilot",
+      "properties": {
+        "qwenCopilot.cli.command": {
+          "type": "string",
+          "default": "qwen",
+          "description": "Command used to start Qwen CLI for Continue in Qwen CLI."
+        },
+        "qwenCopilot.cli.args": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Arguments appended when launching Qwen CLI."
+        },
+        "qwenCopilot.cli.autoSendPrompt": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically send selected text/input to Qwen CLI after launch."
+        }
+      }
+    }
+  },
+  "main": "./dist/extension.js",
+  "type": "commonjs",
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p .",
+    "dev": "tsc -w -p .",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.30",
+    "@types/vscode": "1.108.1",
+    "@vscode/vsce": "3.7.1",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "openai": "4.104.0",
+    "ts-pattern": "^5.9.0"
+  }
+}
