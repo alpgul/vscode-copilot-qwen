@@ -1,6 +1,6 @@
 {
   "name": "vscode-codeqwen-copilot",
-  "displayName": "Qwen Copilot",
+  "displayName": "Qwen Copilot addon",
   "description": "Qwen Code integration for Copilot Agent as a Language Model Chat Provider",
   "icon": "images/Qwen_logo.png",
   "version": "0.1.0",
