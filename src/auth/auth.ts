@@ -44,7 +44,7 @@ export class AuthManager {
     return hasActiveAccessToken(this.credentials);
   }
 
-  async getSession(baseUrlOverride?: string): Promise<QwenAuthSession> {
+  async getSession(): Promise<QwenAuthSession> {
     if (!hasActiveAccessToken(this.credentials)) {
       throw new Error('Not logged in. Use Qwen Copilot: Login.');
     }
@@ -55,7 +55,7 @@ export class AuthManager {
       throw new Error('Session expired. Please login again.');
     }
 
-    return resolveSessionFromCredentials(this.credentials, baseUrlOverride);
+    return resolveSessionFromCredentials(this.credentials);
   }
 
   async loginInteractive(): Promise<string> {

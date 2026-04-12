@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import {AuthManager} from './auth/auth';
 import {continueInQwenCli as continueInQwenCliCommand} from './extension/cliCommand';
+import {
+  configureReasoningMode,
+  toggleReasoningMode,
+} from './extension/reasoningCommand';
 import {QwenLanguageModelChatProvider} from './provider/provider';
 import {qwenClient} from './client/qwenClient';
 import {runWithUiError} from './extension/uiError';
@@ -22,6 +26,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ['qwen-copilot.logout', logout],
     ['qwen-copilot.manage', manage],
     ['qwen-copilot.continueInQwenCli', continueInQwenCli],
+    ['qwen-copilot.reasoning.toggle', reasoningToggle],
+    ['qwen-copilot.reasoning.configure', reasoningConfigure],
   ];
 
   for (const [command, handler] of commands) {
@@ -65,6 +71,14 @@ async function manage(): Promise<void> {
           : 'Start OAuth browser login',
       },
       {
+        label: 'Toggle Reasoning Mode',
+        description: 'Switch reasoning mode between off and on',
+      },
+      {
+        label: 'Configure Reasoning',
+        description: 'Adjust mode, budget, summary visibility, and history retention',
+      },
+      {
         label: 'Logout',
         description: isLoggedIn ? 'Clear stored credentials' : 'No active session',
       },
@@ -88,6 +102,16 @@ async function manage(): Promise<void> {
     return;
   }
 
+  if (selection.label === 'Toggle Reasoning Mode') {
+    await reasoningToggle();
+    return;
+  }
+
+  if (selection.label === 'Configure Reasoning') {
+    await reasoningConfigure();
+    return;
+  }
+
   if (selection.label === 'Logout') {
     await logout();
   }
@@ -95,4 +119,12 @@ async function manage(): Promise<void> {
 
 async function continueInQwenCli(): Promise<void> {
   return runWithUiError('Continue in Qwen CLI', continueInQwenCliCommand);
+}
+
+async function reasoningToggle(): Promise<void> {
+  return runWithUiError('Toggle Reasoning Mode', toggleReasoningMode);
+}
+
+async function reasoningConfigure(): Promise<void> {
+  return runWithUiError('Configure Reasoning', configureReasoningMode);
 }

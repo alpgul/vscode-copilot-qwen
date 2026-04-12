@@ -102,7 +102,7 @@
             "on",
             "auto"
           ],
-          "default": "off",
+          "default": "on",
           "description": "Reasoning mode for supported models. Off preserves current behavior, On requests model reasoning, Auto lets the API decide."
         },
         "qwenCopilot.reasoning.budget": {

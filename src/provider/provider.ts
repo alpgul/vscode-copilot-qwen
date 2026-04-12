@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import {AuthManager} from '../auth/auth';
 import {convertMessages} from './providerMessageConverter';
 import {QWEN_MODELS, resolveModelId} from './providerModels';
-import {isAbortError, resolveMaxTokens, resolveTemperature} from './providerOptions';
+import {
+  isAbortError,
+  resolveMaxTokens,
+  resolveReasoningConfig,
+  resolveTemperature,
+} from './providerOptions';
 import {convertTools, resolveToolChoice} from './providerTools';
 import {qwenClient} from '../client/qwenClient';
 
@@ -33,15 +38,37 @@ export class QwenLanguageModelChatProvider
     progress: vscode.Progress<vscode.LanguageModelResponsePart>,
     token: vscode.CancellationToken,
   ): Promise<void> {
+    try {
+      await this.doProvideLanguageModelChatResponse(
+        model, messages, options, progress, token,
+      );
+    } catch (error) {
+      if (isAbortError(error, token)) {
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      progress.report(new vscode.LanguageModelTextPart(
+        `**Qwen Copilot error:** ${message}`,
+      ));
+    }
+  }
+
+  private async doProvideLanguageModelChatResponse(
+    model: vscode.LanguageModelChatInformation,
+    messages: readonly vscode.LanguageModelChatRequestMessage[],
+    options: vscode.ProvideLanguageModelChatResponseOptions,
+    progress: vscode.Progress<vscode.LanguageModelResponsePart>,
+    token: vscode.CancellationToken,
+  ): Promise<void> {
     await this.ensureLoggedIn();
 
-    const apiConfig = vscode.workspace.getConfiguration('qwenCopilot.api');
-    const baseUrlOverride = (apiConfig.get<string>('baseUrl') || '').trim();
-    const defaultModel = (apiConfig.get<string>('defaultModel') || '').trim();
-    const session = await this.auth.getSession(baseUrlOverride);
+    const session = await this.auth.getSession();
 
-    const modelId = resolveModelId(model.id, defaultModel);
-    const convertedMessages = convertMessages(messages);
+    const modelId = resolveModelId(model.id);
+    const reasoning = resolveReasoningConfig(options.modelOptions);
+    const convertedMessages = convertMessages(messages, {
+      preserveReasoningHistory: reasoning.preserveHistory,
+    });
     const tools = convertTools(options.tools);
 
     const abortController = new AbortController();
@@ -58,6 +85,7 @@ export class QwenLanguageModelChatProvider
         toolChoice: resolveToolChoice(tools),
         maxTokens: resolveMaxTokens(model, options.modelOptions),
         temperature: resolveTemperature(options.modelOptions),
+        reasoning,
         abortSignal: abortController.signal,
       });
 
@@ -68,6 +96,17 @@ export class QwenLanguageModelChatProvider
 
         if (chunk.type === 'text') {
           progress.report(new vscode.LanguageModelTextPart(chunk.text));
+          continue;
+        }
+
+        if (chunk.type === 'reasoning_summary') {
+          if (reasoning.showSummary && chunk.text.trim()) {
+            progress.report(
+              new vscode.LanguageModelTextPart(
+                `\n[Reasoning summary]\n${chunk.text}\n`,
+              ),
+            );
+          }
           continue;
         }
 

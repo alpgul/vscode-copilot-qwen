@@ -2,6 +2,15 @@ import type OpenAI from 'openai';
 
 export type QwenModelId = 'qwen3-coder-plus' | 'qwen3-coder-flash';
 
+export type ReasoningMode = 'off' | 'on' | 'auto';
+
+export interface QwenReasoningConfig {
+  mode: ReasoningMode;
+  budget?: number;
+  showSummary: boolean;
+  preserveHistory: boolean;
+}
+
 export interface QwenAuthSession {
   apiKey: string;
   baseUrl: string;
@@ -42,4 +51,5 @@ export type QwenToolChoice = OpenAI.Chat.ChatCompletionToolChoiceOption;
 
 export type QwenStreamEvent =
   | {type: 'text'; text: string}
-  | {type: 'tool_call'; callId: string; name: string; input: object};
+  | {type: 'tool_call'; callId: string; name: string; input: object}
+  | {type: 'reasoning_summary'; text: string};

@@ -13,6 +13,7 @@ import type {
   QwenAuthSession,
   QwenMessage,
   QwenModelId,
+  QwenReasoningConfig,
   QwenStreamEvent,
   QwenTool,
   QwenToolChoice,
@@ -22,7 +23,6 @@ class QwenClient {
   private client: OpenAI | null = null;
   private activeApiKey: string | null = null;
   private activeBaseUrl: string | null = null;
-  // portal.qwen.ai validates the X-Dashscope-Useragent must start with "QwenCode/"
   private static readonly QWEN_USERAGENT = `QwenCode/0.1.0 (${process.platform}; ${process.arch})`;
   private static readonly USER_AGENT = 'vscode-qwen-copilot/0.1.0';
 
@@ -40,6 +40,7 @@ class QwenClient {
     toolChoice?: QwenToolChoice;
     maxTokens?: number;
     temperature?: number;
+    reasoning: QwenReasoningConfig;
     abortSignal?: AbortSignal;
   }): AsyncGenerator<QwenStreamEvent> {
     this.ensureClient(params.session);
@@ -67,6 +68,8 @@ class QwenClient {
         : {}),
     };
 
+    applyReasoningOptions(baseRequestOptions, params.reasoning);
+
     let response: any | undefined;
     let lastError: unknown;
     let requestOptions: any = {...baseRequestOptions};
@@ -77,26 +80,11 @@ class QwenClient {
           ...(params.abortSignal ? {signal: params.abortSignal} : {}),
         });
 
+      requestOptions = baseRequestOptions;
       try {
         response = await createCompletion();
       } catch (error) {
-        lastError = error;
-      }
-
-      // If the request failed with 400 and tools were present,
-      // retry without tools (some models don't support tool calling).
-      if (
-        response === undefined &&
-        getErrorStatus(lastError) === 400 &&
-        tools?.length
-      ) {
-        const {tools: _tools, tool_choice: _toolChoice, ...rest} = requestOptions;
-        requestOptions = rest;
-        try {
-          response = await createCompletion();
-        } catch (error) {
-          lastError = error;
-        }
+        throw error;
       }
 
       if (response === undefined) {
@@ -186,3 +174,22 @@ class QwenClient {
 }
 
 export const qwenClient = new QwenClient();
+
+function applyReasoningOptions(
+  request: Record<string, unknown>,
+  reasoning: QwenReasoningConfig,
+): void {
+  if (reasoning.mode === 'on' || reasoning.mode === 'auto') {
+    request.enable_thinking = true;
+  }
+
+  if (typeof reasoning.budget === 'number' && reasoning.budget > 0) {
+    request.thinking_budget = reasoning.budget;
+  }
+
+  if (reasoning.preserveHistory) {
+    request.preserve_thinking = true;
+  }
+}
+
+

@@ -10,7 +10,6 @@ export function normalizeBaseUrl(value: string): string {
   const parsed = new URL(withScheme);
   let pathname = parsed.pathname.replace(/\/+$/, '');
 
-  // Token resource_url may point to a concrete completion endpoint.
   pathname = pathname.replace(/\/chat\/completions$/i, '');
 
   if (!pathname) {
