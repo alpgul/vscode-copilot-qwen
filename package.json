@@ -9,12 +9,12 @@
   "keywords": ["qwen", "ai", "copilot", "language-model", "code-assistant", "alibaba"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yyyumeniku/qwen-copilot.git"
+    "url": "https://github.com/yyyumeniku/qwen-copilot-extension.git"
   },
   "bugs": {
-    "url": "https://github.com/yyyumeniku/qwen-copilot/issues"
+    "url": "https://github.com/yyyumeniku/qwen-copilot-extension/issues"
   },
-  "homepage": "https://github.com/yyyumeniku/qwen-copilot#readme",
+  "homepage": "https://github.com/yyyumeniku/qwen-copilot-extension#readme",
   "galleryBanner": {
     "color": "#1a1a2e",
     "theme": "dark"
@@ -64,6 +64,14 @@
       {
         "command": "qwen-copilot.continueInQwenCli",
         "title": "Qwen Copilot: Continue in Qwen CLI"
+      },
+      {
+        "command": "qwen-copilot.reasoning.toggle",
+        "title": "Qwen Copilot: Toggle Reasoning Mode"
+      },
+      {
+        "command": "qwen-copilot.reasoning.configure",
+        "title": "Qwen Copilot: Configure Reasoning"
       }
     ],
     "configuration": {
@@ -86,6 +94,35 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically send selected text/input to Qwen CLI after launch."
+        },
+        "qwenCopilot.reasoning.mode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "on",
+            "auto"
+          ],
+          "default": "off",
+          "description": "Reasoning mode for supported models. Off preserves current behavior, On requests model reasoning, Auto lets the API decide."
+        },
+        "qwenCopilot.reasoning.budget": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null,
+          "minimum": 1,
+          "description": "Optional thinking budget when reasoning is enabled. Null uses model defaults."
+        },
+        "qwenCopilot.reasoning.showSummary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show model-provided public reasoning summary text when available. Hidden private reasoning is never shown."
+        },
+        "qwenCopilot.reasoning.preserveHistory": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preserve explicitly exposed reasoning history across turns when supported. May increase token usage."
         }
       }
     }
