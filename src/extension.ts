@@ -12,26 +12,37 @@ import {runWithUiError} from './extension/uiError';
 const authManager = new AuthManager();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  authManager.setSecretStorage(context.secrets);
-  await authManager.loadSession();
+  try {
+    console.log('[Qwen Copilot] Activating extension...');
+    
+    authManager.setSecretStorage(context.secrets);
+    await authManager.loadSession();
 
-  const provider = new QwenLanguageModelChatProvider(authManager);
-  context.subscriptions.push(
-    vscode.lm.registerLanguageModelChatProvider('qwen', provider),
-  );
+    const provider = new QwenLanguageModelChatProvider(authManager);
+    context.subscriptions.push(
+      vscode.lm.registerLanguageModelChatProvider('qwen', provider),
+    );
 
-  const commands: Array<[string, () => Promise<void>]> = [
-    ['qwen-copilot.login', login],
-    ['qwen-copilot.authenticate', login],
-    ['qwen-copilot.logout', logout],
-    ['qwen-copilot.manage', manage],
-    ['qwen-copilot.continueInQwenCli', continueInQwenCli],
-    ['qwen-copilot.reasoning.toggle', reasoningToggle],
-    ['qwen-copilot.reasoning.configure', reasoningConfigure],
-  ];
+    const commands: Array<[string, () => Promise<void>]> = [
+      ['qwen-copilot.login', login],
+      ['qwen-copilot.authenticate', login],
+      ['qwen-copilot.logout', logout],
+      ['qwen-copilot.manage', manage],
+      ['qwen-copilot.continueInQwenCli', continueInQwenCli],
+      ['qwen-copilot.reasoning.toggle', reasoningToggle],
+      ['qwen-copilot.reasoning.configure', reasoningConfigure],
+    ];
 
-  for (const [command, handler] of commands) {
-    context.subscriptions.push(vscode.commands.registerCommand(command, handler));
+    for (const [command, handler] of commands) {
+      context.subscriptions.push(vscode.commands.registerCommand(command, handler));
+    }
+
+    console.log('[Qwen Copilot] Extension activated successfully');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[Qwen Copilot] Activation failed:', message);
+    vscode.window.showErrorMessage(`Qwen Copilot activation failed: ${message}`);
+    throw error;
   }
 }
 

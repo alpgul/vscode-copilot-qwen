@@ -16,7 +16,8 @@
     "types": [
       "node",
       "vscode"
-    ]
+    ],
+    "noEmit": true
   },
   "include": [
     "src/**/*.ts"

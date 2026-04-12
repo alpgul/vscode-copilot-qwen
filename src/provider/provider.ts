@@ -16,9 +16,14 @@ export class QwenLanguageModelChatProvider
 {
   constructor(private readonly auth: AuthManager) {}
 
-  async provideLanguageModelChatInformation(): Promise<
-    vscode.LanguageModelChatInformation[]
-  > {
+  async provideLanguageModelChatInformation(
+    options: vscode.PrepareLanguageModelChatModelOptions,
+    token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelChatInformation[]> {
+    if (token.isCancellationRequested) {
+      return [];
+    }
+
     return Object.values(QWEN_MODELS).map(model => ({
       id: model.id,
       name: model.name,
@@ -27,7 +32,10 @@ export class QwenLanguageModelChatProvider
       detail: 'Qwen',
       maxInputTokens: model.maxInputTokens,
       maxOutputTokens: model.maxOutputTokens,
-      capabilities: {toolCalling: true},
+      capabilities: {
+        toolCalling: true,
+        imageInput: false,
+      },
     }));
   }
 

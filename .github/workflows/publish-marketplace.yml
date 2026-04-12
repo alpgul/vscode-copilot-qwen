@@ -1,13 +1,16 @@
 name: Publish VS Code Extension
 
 on:
-  workflow_dispatch:
-  schedule:
-    # Runs daily at 05:00 UTC
-    - cron: '0 5 * * *'
+  push:
+    branches:
+      - main
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: publish-marketplace-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -28,13 +31,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Configure git
+      - name: Validate VSCE_PAT secret
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::Missing required repository secret VSCE_PAT. Add a valid Marketplace PAT and retry."
+            exit 1
+          fi
 
-      - name: Bump patch version
-        run: npm version patch --no-git-tag-version
+      - name: Verify publisher PAT permissions
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          PUBLISHER=$(node -p "require('./package.json').publisher")
+          set +e
+          npx @vscode/vsce verify-pat "$PUBLISHER" 2>&1 | tee verify-pat.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            if grep -Ei "TF400813|Unauthorized|401|403|Invalid Resource|expired" verify-pat.log >/dev/null; then
+              echo "::error::Marketplace authentication failed. Check VSCE_PAT is valid/current, has Marketplace Manage scope, is scoped to all accessible organizations when required, and that token owner has publisher access for '$PUBLISHER'."
+            fi
+            exit "$status"
+          fi
 
       - name: Build extension
         run: npm run build
@@ -42,10 +62,14 @@ jobs:
       - name: Publish to Visual Studio Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --pat "$VSCE_PAT"
-
-      - name: Commit and push version bump
         run: |
-          git add package.json package-lock.json
-          git commit -m "chore: bump version for marketplace publish [skip ci]"
-          git push
+          set +e
+          npx @vscode/vsce publish --skip-duplicate 2>&1 | tee publish.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            if grep -Ei "TF400813|Unauthorized|401|403|Invalid Resource|expired" publish.log >/dev/null; then
+              echo "::error::Marketplace publish authentication failed. Rotate VSCE_PAT if needed, ensure Marketplace Manage scope, all-organizations scope when required, and publisher access in package.json publisher."
+            fi
+            exit "$status"
+          fi

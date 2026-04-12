@@ -1,12 +1,19 @@
 {
-  "name": "vscode-codeqwen-copilot",
+  "name": "vscode-qwencode-copilot",
   "displayName": "Qwen Copilot addon",
   "description": "Qwen Code integration for Copilot Agent as a Language Model Chat Provider",
   "icon": "images/Qwen_logo.png",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "yyyumeniku",
   "license": "MIT",
-  "keywords": ["qwen", "ai", "copilot", "language-model", "code-assistant", "alibaba"],
+  "keywords": [
+    "qwen",
+    "ai",
+    "copilot",
+    "language-model",
+    "code-assistant",
+    "alibaba"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/yyyumeniku/qwen-copilot-extension.git"
@@ -131,14 +138,15 @@
   "type": "commonjs",
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "tsc -p .",
-    "dev": "tsc -w -p .",
+    "build": "node esbuild.config.js --production",
+    "dev": "node esbuild.config.js",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "20.19.30",
     "@types/vscode": "1.108.1",
-    "@vscode/vsce": "3.7.1",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.28.0",
     "typescript": "5.9.3"
   },
   "dependencies": {

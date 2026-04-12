@@ -3,7 +3,8 @@ docs/
 .github/
 .gitignore
 tsconfig.json
-esbuild.config.js
 *.ts
 !dist/
 node_modules/
+
+
