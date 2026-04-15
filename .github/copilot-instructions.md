@@ -12,20 +12,16 @@ A VS Code extension that provides Qwen Code AI models as a chat provider for VS 
 - **Type**: VS Code extension (TypeScript)
 - **Language**: TypeScript with strict mode
 - **Build**: esbuild
-- **Testing**: Mocha
 - **Linting**: ESLint with @stylistic plugin
 
 ## Build & Test Commands
 
 ```bash
-# Compile TypeScript
-npm run compile
+# Build extension (bundles dependencies with esbuild)
+npm run build
 
 # Package extension (VSIX)
 npm run package
-
-# Run tests
-npm test
 ```
 
 ## Architecture
@@ -37,7 +33,8 @@ src/
 ├── auth/              # OAuth authentication (device flow, PKCE, refresh)
 ├── client/            # OpenAI-compatible API client for Qwen
 ├── provider/          # VS Code LanguageModelChatProvider implementation
-└── extension/         # Commands (CLI, reasoning, error handling)
+├── extension/         # Commands (CLI, reasoning, error handling)
+└── esbuild.config.mjs # Build configuration (bundles all dependencies)
 ```
 
 ### Key Components
@@ -63,11 +60,13 @@ src/
 ## Dependencies
 
 - `openai`: OpenAI-compatible API client
+- `ts-pattern`: Pattern matching for message conversion
 - `vscode`: VS Code extension API
 
 ## Key Files
 
 - `package.json`: Extension manifest, commands, configuration
+- `esbuild.config.mjs`: Build config that bundles dependencies
 - `src/extension.ts`: Activation/deactivation, command registration
 - `src/provider/provider.ts`: Chat provider implementation
 - `src/auth/auth.ts`: Authentication manager
