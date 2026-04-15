@@ -2,7 +2,7 @@
 node_modules/
 
 # Build outputs
-dist/
+out/
 *.vsix
 
 # Test artifacts
@@ -34,7 +34,7 @@ temp/
 node_modules/
 
 # Build output
-dist/
+out/
 *.vsix
 
 # VS Code
