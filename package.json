@@ -134,23 +134,33 @@
       }
     }
   },
-  "main": "./dist/extension.js",
+  "main": "./out/extension.js",
   "type": "commonjs",
   "scripts": {
-    "vscode:prepublish": "npm run build",
-    "build": "node esbuild.config.js --production",
-    "dev": "node esbuild.config.js",
-    "type-check": "tsc --noEmit"
+		"vscode:prepublish": "npm run compile",
+		"download-api": "dts dev",
+		"postdownload-api": "dts main",
+		"postinstall": "npm run download-api",
+		"compile": "tsc -p ./",
+		"lint": "eslint",
+		"format": "prettier --write .",
+		"watch": "tsc -watch -p ./",
+    "package": "vsce package"
   },
   "devDependencies": {
-    "@types/node": "20.19.30",
+    "@eslint/js": "^9.13.0",
+		"@stylistic/eslint-plugin": "^2.9.0",
+		"typescript-eslint": "^8.39.0",
+    "@vscode/dts": "^0.4.1",
+    "@types/node": "^22",
     "@types/vscode": "1.108.1",
     "@vscode/vsce": "^3.7.1",
-    "esbuild": "^0.28.0",
+    "eslint": "^9.13.0",
+		"prettier": "^3.1.0",
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "openai": "4.104.0",
+    "openai": "5.11.0",
     "ts-pattern": "^5.9.0"
   }
 }
